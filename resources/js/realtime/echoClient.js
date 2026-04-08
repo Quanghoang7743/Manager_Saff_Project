@@ -12,26 +12,17 @@ const toNumber = (value, fallback) => {
 }
 
 const resolveConfig = () => {
-  const isHttps = (import.meta.env.VITE_REVERB_SCHEME || 'http') === 'https'
-  const envHost = import.meta.env.VITE_REVERB_HOST
-  const wsHost = envHost || window.location.hostname
-
-  // On Railway: Reverb and Web are different domains
-  // Auth endpoint must point to Web service (not Reverb service)
   const appUrl = import.meta.env.VITE_APP_URL
   const authEndpoint = appUrl
     ? `${appUrl.replace(/\/$/, '')}/api/broadcasting/auth`
     : '/api/broadcasting/auth'
 
   return {
-    broadcaster: 'reverb',
-    key: import.meta.env.VITE_REVERB_APP_KEY,
-    cluster: import.meta.env.VITE_REVERB_CLUSTER || 'mt1',
-    wsHost,
-    wsPort: toNumber(import.meta.env.VITE_REVERB_PORT, isHttps ? 443 : 8080),
-    wssPort: toNumber(import.meta.env.VITE_REVERB_PORT, 443),
-    forceTLS: isHttps,
-    enabledTransports: isHttps ? ['wss'] : ['ws'],
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+    forceTLS: true,
+    enabledTransports: ['ws', 'wss'],
     authEndpoint,
   }
 }
