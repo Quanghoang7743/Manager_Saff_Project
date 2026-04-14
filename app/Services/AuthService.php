@@ -23,6 +23,9 @@ class AuthService
             'gender' => $payload['gender'] ?? null,
             'account_status' => 'active',
             'presence_status' => 'offline',
+            'role' => 'employee',
+            'employment_status' => 'active',
+            'work_type' => 'onsite',
             'is_phone_verified' => false,
             'is_email_verified' => false,
         ]);

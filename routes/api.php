@@ -1,12 +1,17 @@
 <?php
 
+use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConversationController;
 use App\Http\Controllers\Api\ConversationParticipantController;
+use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\FriendController;
 use App\Http\Controllers\Api\MessageAttachmentController;
 use App\Http\Controllers\Api\MessageController;
 use App\Http\Controllers\Api\MessageReactionController;
+use App\Http\Controllers\Api\PositionController;
+use App\Http\Controllers\Api\TaskController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\UserDeviceController;
 use Illuminate\Support\Facades\Route;
@@ -22,6 +27,43 @@ Route::middleware('auth:sanctum')->group(function (): void {
     Route::get('/users/{id}', [UserController::class, 'show']);
     Route::put('/users/{id}', [UserController::class, 'update']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    Route::get('/employees', [EmployeeController::class, 'index']);
+    Route::post('/employees', [EmployeeController::class, 'store']);
+    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
+
+    Route::get('/departments', [DepartmentController::class, 'index']);
+    Route::post('/departments', [DepartmentController::class, 'store']);
+    Route::put('/departments/{id}', [DepartmentController::class, 'update']);
+    Route::delete('/departments/{id}', [DepartmentController::class, 'destroy']);
+
+    Route::get('/positions', [PositionController::class, 'index']);
+    Route::post('/positions', [PositionController::class, 'store']);
+    Route::put('/positions/{id}', [PositionController::class, 'update']);
+    Route::delete('/positions/{id}', [PositionController::class, 'destroy']);
+
+    Route::get('/tasks', [TaskController::class, 'index']);
+    Route::post('/tasks', [TaskController::class, 'store']);
+    Route::get('/tasks/{id}', [TaskController::class, 'show']);
+    Route::put('/tasks/{id}', [TaskController::class, 'update']);
+    Route::delete('/tasks/{id}', [TaskController::class, 'destroy']);
+    Route::get('/tasks/{id}/comments', [TaskController::class, 'comments']);
+    Route::post('/tasks/{id}/comments', [TaskController::class, 'addComment']);
+
+    Route::get('/attendance/shifts', [AttendanceController::class, 'shifts']);
+    Route::post('/attendance/shifts', [AttendanceController::class, 'createShift']);
+    Route::put('/attendance/shifts/{id}', [AttendanceController::class, 'updateShift']);
+    Route::delete('/attendance/shifts/{id}', [AttendanceController::class, 'deleteShift']);
+    Route::post('/attendance/assignments', [AttendanceController::class, 'assignShift']);
+    Route::get('/attendance/assignments/me', [AttendanceController::class, 'myAssignments']);
+    Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
+    Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
+    Route::get('/attendance/logs/me', [AttendanceController::class, 'myLogs']);
+    Route::get('/attendance/logs/team', [AttendanceController::class, 'teamLogs']);
+    Route::get('/attendance/reports', [AttendanceController::class, 'report']);
+    Route::post('/attendance/adjustments', [AttendanceController::class, 'requestAdjustment']);
+    Route::patch('/attendance/adjustments/{id}/review', [AttendanceController::class, 'reviewAdjustment']);
 
     Route::post('/friends/resolve-by-phone', [FriendController::class, 'resolveByPhone']);
     Route::post('/friend-requests', [FriendController::class, 'sendRequest']);

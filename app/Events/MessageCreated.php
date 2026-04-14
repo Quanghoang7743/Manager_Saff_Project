@@ -36,6 +36,13 @@ class MessageCreated implements ShouldBroadcastNow
                 'id' => $this->message->id,
                 'client_message_id' => $this->message->client_message_id,
                 'sender_id' => $this->message->sender_id,
+                'sender' => [
+                    'id' => $this->message->sender?->id,
+                    'display_name' => $this->message->sender?->display_name,
+                    'username' => $this->message->sender?->username,
+                    'avatar_url' => $this->message->sender?->avatar_url,
+                    'presence_status' => $this->message->sender?->presence_status,
+                ],
                 'message_type' => $this->message->message_type,
                 'content' => $this->message->content,
                 'content_json' => $this->message->content_json,

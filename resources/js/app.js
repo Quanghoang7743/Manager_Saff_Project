@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Login from '../views/account/Authentication/Login/Login.jsx';
 import Signup from '../views/account/Authentication/Sigup/Sigup.jsx';
+import SettingPage from '../views/account/setting/page.jsx';
 import Main from '../views/Main.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 
@@ -34,8 +35,19 @@ const routeComponent = () => {
         return React.createElement(Signup);
     }
 
-    if (window.location.pathname === '/main' || window.location.pathname === '/') {
+    if (
+        window.location.pathname === '/main'
+        || window.location.pathname === '/'
+        || window.location.pathname === '/dashboard'
+        || window.location.pathname === '/attendance'
+        || window.location.pathname === '/employees'
+        || window.location.pathname === '/tasks'
+    ) {
         return React.createElement(Main);
+    }
+
+    if (window.location.pathname === '/setting') {
+        return React.createElement(SettingPage);
     }
 
     return React.createElement(Login);

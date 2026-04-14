@@ -16,6 +16,23 @@ const resolveConfig = () => {
   const authEndpoint = appUrl
     ? `${appUrl.replace(/\/$/, '')}/api/broadcasting/auth`
     : '/api/broadcasting/auth'
+  const driver = import.meta.env.VITE_BROADCAST_DRIVER || (import.meta.env.VITE_PUSHER_APP_KEY ? 'pusher' : 'reverb')
+
+  if (driver === 'reverb') {
+    const isHttps = (import.meta.env.VITE_REVERB_SCHEME || 'http') === 'https'
+
+    return {
+      broadcaster: 'reverb',
+      key: import.meta.env.VITE_REVERB_APP_KEY,
+      cluster: import.meta.env.VITE_REVERB_CLUSTER || 'mt1',
+      wsHost: import.meta.env.VITE_REVERB_HOST || window.location.hostname,
+      wsPort: toNumber(import.meta.env.VITE_REVERB_PORT, isHttps ? 443 : 8080),
+      wssPort: toNumber(import.meta.env.VITE_REVERB_PORT, 443),
+      forceTLS: isHttps,
+      enabledTransports: isHttps ? ['wss'] : ['ws'],
+      authEndpoint,
+    }
+  }
 
   return {
     broadcaster: 'pusher',

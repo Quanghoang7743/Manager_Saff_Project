@@ -68,7 +68,7 @@ const buildDeviceForm = () => ({
   os_version: '',
 })
 
-export default function Mesage() {
+export default function MessagePage() {
   const { user, token, logout, setUser } = useAuth()
 
   const [darkMode] = React.useState(false)

@@ -2,15 +2,12 @@ import {
   Avatar,
   Box,
   Button,
-  CircularProgress,
-  Divider,
   InputBase,
-  Menu,
-  MenuItem,
   Stack,
   Typography,
 } from '@mui/material'
 import React from 'react'
+import Search from '../../../components/search/search.component'
 
 const getConversationTitle = (conversation) => {
   if (conversation?.title?.trim()) {
@@ -49,9 +46,7 @@ export default function ChatListPanel({
   onAcceptFriendRequest,
   onRejectFriendRequest,
   onCancelFriendRequest,
-  onAvatarMenuSelect,
 }) {
-  const [menuAnchor, setMenuAnchor] = React.useState(null)
   const [listMode, setListMode] = React.useState('all')
 
   const filteredConversations = React.useMemo(() => {
@@ -77,13 +72,6 @@ export default function ChatListPanel({
   const isPhoneLikeSearch = phoneDigits.length > 0 && phoneDigits.length === searchKeyword.trim().length
   const shouldWaitFullPhone = isPhoneLikeSearch && phoneDigits.length < 10
 
-  const openMenu = Boolean(menuAnchor)
-
-  const handleMenuSelect = (action) => {
-    setMenuAnchor(null)
-    onAvatarMenuSelect(action)
-  }
-
   return (
     <Stack
       sx={{
@@ -99,19 +87,36 @@ export default function ChatListPanel({
           Messages
         </Typography>
 
-        <Button onClick={(event) => setMenuAnchor(event.currentTarget)} sx={{ minWidth: 0, p: 0, borderRadius: '50%' }}>
-          <Avatar src={user?.avatar_url || undefined} sx={{ width: 36, height: 36 }}>
-            {(user?.display_name || user?.username || 'U').slice(0, 1)}
-          </Avatar>
-        </Button>
+        {/* <Button
+          onClick={() => {
+            window.location.href = '/setting'
+          }}
+          sx={{
+            minWidth: 0,
+            p: 0.45,
+            borderRadius: '999px',
+            border: darkMode ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(216,223,236,0.95)',
+            bgcolor: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.84)',
+          }}
+        >
+          <Stack direction="row" spacing={0.8} alignItems="center">
+            <Avatar src={user?.avatar_url || undefined} sx={{ width: 34, height: 34 }}>
+              {(user?.display_name || user?.username || 'U').slice(0, 1)}
+            </Avatar>
+            <Box sx={{ display: { xs: 'none', md: 'block' }, textAlign: 'left', minWidth: 0, maxWidth: 112 }}>
+              <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 700, color: darkMode ? '#f8faff' : '#111827', lineHeight: 1.05 }}>
+                {user?.display_name || user?.username || 'User'}
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: darkMode ? '#94a3b8' : '#7c8798' }}>
+                Cai dat
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'grid', placeItems: 'center', color: darkMode ? '#b7c2d6' : '#64748b', pr: { xs: 0.2, md: 0.5 } }}>
+              <SettingsRoundedIcon sx={{ fontSize: 18 }} />
+            </Box>
+          </Stack>
+        </Button> */}
       </Stack>
-
-      <Menu anchorEl={menuAnchor} open={openMenu} onClose={() => setMenuAnchor(null)}>
-        <MenuItem onClick={() => handleMenuSelect('profile')}>Profile</MenuItem>
-        <MenuItem onClick={() => handleMenuSelect('devices')}>Devices</MenuItem>
-        <MenuItem onClick={() => handleMenuSelect('friend-requests')}>Friend Requests</MenuItem>
-        <MenuItem onClick={() => handleMenuSelect('logout')}>Logout</MenuItem>
-      </Menu>
 
       <Box sx={{ px: 1.6, py: 0.22, mb: 1.35, borderRadius: '13px', bgcolor: darkMode ? 'rgba(255,255,255,0.06)' : '#eef1f7' }}>
         <InputBase
@@ -166,91 +171,19 @@ export default function ChatListPanel({
       </Stack>
 
       <Box sx={{ overflowY: 'auto', pr: 0.15, pb: 0.4 }}>
-        {searchKeyword.trim() ? (
-          <>
-            <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 0.7 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: darkMode ? '#e7ebf8' : '#1d2432' }}>
-                People
-              </Typography>
-              {searchLoading ? <CircularProgress size={14} /> : null}
-            </Stack>
-
-            <Stack spacing={0.7} sx={{ mb: 1.1 }}>
-              {searchResults.map((person) => {
-                const relation = relationByUserId[String(person.id)] || { type: 'none' }
-
-                return (
-                  <Box
-                    key={`user-${person.id}`}
-                    sx={{
-                      p: 1,
-                      borderRadius: '14px',
-                      bgcolor: darkMode ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.78)',
-                      border: darkMode ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(225,230,240,0.7)',
-                    }}
-                  >
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar src={person.avatar_url || undefined} sx={{ width: 35, height: 35 }}>
-                        {(person.display_name || person.username || 'U').slice(0, 1)}
-                      </Avatar>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography noWrap sx={{ fontWeight: 600, color: darkMode ? '#f5f6fb' : '#151722', fontSize: 13 }}>
-                          {person.display_name || person.username || `User #${person.id}`}
-                        </Typography>
-                        <Typography noWrap sx={{ fontSize: 12, color: darkMode ? '#9aa1b3' : '#7f8594' }}>
-                          @{person.username || `id${person.id}`}
-                        </Typography>
-                      </Box>
-
-                      {relation.type === 'friend' ? (
-                        <Button size="small" onClick={() => onOpenDirect(person.id)} sx={{ textTransform: 'none', minWidth: 0, px: 0.8 }}>
-                          Chat
-                        </Button>
-                      ) : null}
-
-                      {relation.type === 'incoming' ? (
-                        <Stack direction="row" spacing={0.35}>
-                          <Button size="small" onClick={() => onAcceptFriendRequest(relation.requestId)} sx={{ textTransform: 'none', minWidth: 0, px: 0.65 }}>
-                            Accept
-                          </Button>
-                          <Button size="small" onClick={() => onRejectFriendRequest(relation.requestId)} sx={{ textTransform: 'none', minWidth: 0, px: 0.65 }}>
-                            Reject
-                          </Button>
-                        </Stack>
-                      ) : null}
-
-                      {relation.type === 'outgoing' ? (
-                        <Button size="small" onClick={() => onCancelFriendRequest(relation.requestId)} sx={{ textTransform: 'none', minWidth: 0, px: 0.8 }}>
-                          Pending
-                        </Button>
-                      ) : null}
-
-                      {relation.type === 'none' ? (
-                        <Button size="small" onClick={() => onSendFriendRequest(person.id)} sx={{ textTransform: 'none', minWidth: 0, px: 0.8 }}>
-                          Add
-                        </Button>
-                      ) : null}
-                    </Stack>
-                  </Box>
-                )
-              })}
-
-              {/* {shouldWaitFullPhone ? (
-                <Typography sx={{ color: darkMode ? '#8f97ab' : '#7a8090', fontSize: 12.5, px: 0.4 }}>
-                  Enter full 10-digit phone number to search.
-                </Typography>
-              ) : null} */}
-
-              {!searchLoading && !shouldWaitFullPhone && searchResults.length === 0 ? (
-                <Typography sx={{ color: darkMode ? '#8f97ab' : '#7a8090', fontSize: 12.5, px: 0.4 }}>
-                  Số điện thoại chưa được đăng ký
-                </Typography>
-              ) : null}
-            </Stack>
-              
-            <Divider sx={{ mb: 1 }} />
-          </>
-        ) : null}
+        <Search
+          darkMode={darkMode}
+          searchKeyword={searchKeyword}
+          searchLoading={searchLoading}
+          searchResults={searchResults}
+          relationByUserId={relationByUserId}
+          onOpenDirect={onOpenDirect}
+          onSendFriendRequest={onSendFriendRequest}
+          onAcceptFriendRequest={onAcceptFriendRequest}
+          onRejectFriendRequest={onRejectFriendRequest}
+          onCancelFriendRequest={onCancelFriendRequest}
+          shouldWaitFullPhone={shouldWaitFullPhone}
+        />
 
         <Typography sx={{ fontSize: 13, fontWeight: 700, color: darkMode ? '#e7ebf8' : '#1d2432', mb: 0.7 }}>
           Conversations

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -30,6 +31,14 @@ class User extends Authenticatable
         'gender',
         'account_status',
         'presence_status',
+        'role',
+        'employee_code',
+        'department_id',
+        'position_id',
+        'manager_user_id',
+        'employment_status',
+        'work_type',
+        'hired_at',
         'last_seen_at',
         'is_phone_verified',
         'is_email_verified',
@@ -42,6 +51,7 @@ class User extends Authenticatable
     protected $casts = [
         'birth_date' => 'date',
         'last_seen_at' => 'datetime:Y-m-d H:i:s.v',
+        'hired_at' => 'date',
         'is_phone_verified' => 'boolean',
         'is_email_verified' => 'boolean',
         'created_at' => 'datetime:Y-m-d H:i:s.v',
@@ -77,6 +87,46 @@ class User extends Authenticatable
     public function messages(): HasMany
     {
         return $this->hasMany(Message::class, 'sender_id');
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class, 'department_id');
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class, 'position_id');
+    }
+
+    public function manager(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
+
+    public function directReports(): HasMany
+    {
+        return $this->hasMany(User::class, 'manager_user_id');
+    }
+
+    public function createdTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'creator_id');
+    }
+
+    public function assignedTasks(): HasMany
+    {
+        return $this->hasMany(Task::class, 'assignee_id');
+    }
+
+    public function shiftAssignments(): HasMany
+    {
+        return $this->hasMany(ShiftAssignment::class, 'user_id');
+    }
+
+    public function attendanceLogs(): HasMany
+    {
+        return $this->hasMany(AttendanceLog::class, 'user_id');
     }
 
     public function reactedMessages(): BelongsToMany
@@ -117,5 +167,12 @@ class User extends Authenticatable
     public function friendshipsAsHigh(): HasMany
     {
         return $this->hasMany(Friendship::class, 'user_high_id');
+    }
+
+    public function hasRole(array|string $roles): bool
+    {
+        $expected = is_array($roles) ? $roles : [$roles];
+
+        return in_array($this->role, $expected, true);
     }
 }

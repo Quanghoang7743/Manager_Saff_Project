@@ -1,6 +1,7 @@
 import { Avatar, Box, Button, Chip, Stack, Typography } from '@mui/material'
 import React from 'react'
 import ConversationComposerBlock from './chatInput/ConversationComposerBlock.jsx'
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 const getConversationTitle = (conversation) => {
   if (!conversation) {
@@ -20,6 +21,23 @@ const getConversationTitle = (conversation) => {
   }
 
   return `Group #${conversation.id}`
+}
+
+const normalizeAvatarUrl = (value) => {
+  if (!value || typeof value !== 'string') {
+    return undefined
+  }
+
+  const trimmed = value.trim()
+  if (!trimmed) {
+    return undefined
+  }
+
+  if (/^(https?:|data:|blob:)/i.test(trimmed)) {
+    return trimmed
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
 export default function ConversationPanel({
@@ -68,6 +86,22 @@ export default function ConversationPanel({
 }) {
   const hasConversation = Boolean(conversation)
   const scrollerRef = React.useRef(null)
+  const participantUserById = React.useMemo(() => {
+    const map = {}
+
+    if (!Array.isArray(participants)) {
+      return map
+    }
+
+    participants.forEach((participant) => {
+      const id = participant?.user?.id ?? participant?.user_id
+      if (id !== undefined && id !== null) {
+        map[String(id)] = participant?.user || null
+      }
+    })
+
+    return map
+  }, [participants])
 
   React.useEffect(() => {
     if (!hasConversation || !scrollerRef.current) {
@@ -95,8 +129,8 @@ export default function ConversationPanel({
               {getConversationTitle(conversation)}
             </Typography>
             <Typography sx={{ color: darkMode ? '#8f97ab' : '#7a8090', fontSize: 12 }}>
-              {/* {hasConversation ? `${conversation?.conversation_type || 'chat'} • online ${presenceUsers.length}` : 'Select a conversation from the list'} */}
-              Đang online
+              {hasConversation ? `${conversation?.conversation_type || 'chat'} • online ${presenceUsers.length}` : 'Select a conversation from the list'}
+              {/* Đang online */}
             </Typography>
           </Box>
         </Stack>
@@ -128,7 +162,7 @@ export default function ConversationPanel({
           </Stack>
         ) : null} */}
         {hasConversation ? (
-          <Stack direction={"row"} spacing={1} alignItems={"center"}>
+          <Stack direction={"row"} spacing={2} alignItems={"center"}>
             <Button
               sx={{
                 minWidth: 0,
@@ -144,7 +178,15 @@ export default function ConversationPanel({
                 p: 0
               }}
             >
-              <svg fill="#000000" width="35px" height="35px" viewBox="-5.5 0 32 32" version="1.1" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <title>video-camera</title> <path d="M18.76 23.3c-0.2 0-0.36-0.080-0.52-0.2l-3.84-3.040c0 1.16-0.96 2.080-2.080 2.080h-10.24c-1.16 0-2.080-0.96-2.080-2.080v-8.12c0-1.16 0.96-2.080 2.080-2.080h10.2c1.16 0 2.080 0.96 2.080 2.080v0l3.84-3.040c0.16-0.12 0.32-0.2 0.52-0.2 1.2 0 2.2 1 2.2 2.2v10.2c0.040 1.24-0.96 2.2-2.16 2.2zM13.56 17.5c0.2 0 0.36 0.080 0.52 0.2l4.92 3.88c0.16-0.080 0.28-0.24 0.28-0.44v-10.2c0-0.2-0.12-0.36-0.28-0.44l-4.92 3.88c-0.24 0.2-0.6 0.24-0.88 0.080s-0.48-0.44-0.48-0.76v-1.76c0-0.24-0.2-0.4-0.4-0.4h-10.24c-0.24 0-0.4 0.2-0.4 0.4v8.16c0 0.24 0.2 0.4 0.4 0.4h10.2c0.24 0 0.4-0.2 0.4-0.4v-1.76c0-0.32 0.2-0.6 0.48-0.76 0.16-0.040 0.28-0.080 0.4-0.080z"></path> </g></svg>
+              <img src='/icons/video.svg' alt='' width={24} height={24} />
+            </Button>
+            <Button
+              sx={{
+                minWidth: 0,
+                p: 0
+              }}
+            >
+              <MoreVertIcon sx={{ fontSize: 24 }} />
             </Button>
           </Stack>
 
@@ -167,78 +209,119 @@ export default function ConversationPanel({
 
           {messages.map((message) => {
             const mine = Number(message?.sender?.id || message?.sender_id) === Number(user?.id)
-            const senderName = message?.sender?.display_name
-              || message?.sender?.username
+            const senderUser = message?.sender
+              || participantUserById[String(message?.sender_id)]
+              || (conversation?.conversation_type === 'direct' ? conversation?.direct_peer : null)
+            const senderName = senderUser?.display_name
+              || senderUser?.username
               || (mine ? 'You' : `User #${message?.sender_id || 'unknown'}`)
+            const senderAvatarUrl = normalizeAvatarUrl(senderUser?.avatar_url || (mine ? user?.avatar_url : undefined))
+            const senderInitial = (senderName || '?').trim().slice(0, 1).toUpperCase()
             const deletedForEveryone = Boolean(message.deleted_for_everyone_at)
 
             return (
-              <Box key={message.id} sx={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-                <Box
-                  sx={{
-                    maxWidth: { xs: '95%', md: '76%' },
-                    px: 1.2,
-                    py: 0.95,
-                    borderRadius: '16px',
-                    border: `1px solid ${mine ? '#2f80ff' : '#dbe3f0'}`,
-                    bgcolor: mine ? '#2f80ff' : '#ffffff',
-                    color: mine ? '#ffffff' : '#1c1f2a',
-                  }}
-                >
-                  {/* <Typography sx={{ fontSize: 11.5, fontWeight: 700, opacity: mine ? 0.9 : 0.7, mb: 0.35 }}>{senderName}</Typography> */}
-                  <Typography sx={{ fontSize: 14, whiteSpace: 'pre-wrap' }}>
-                    {deletedForEveryone ? '[Deleted for everyone]' : message.content || '[No content]'}
-                  </Typography>
+              <Box key={message.id} sx={{ position: 'relative', display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1, maxWidth: '100%' }}>
+                  {!mine ? (
+                    <Avatar
+                      src={senderAvatarUrl}
+                      sx={{ width: 28, height: 28, bgcolor: '#d3defa', color: '#2d3e6f', fontSize: 12, flexShrink: 0 }}
+                    >
+                      {senderInitial}
+                    </Avatar>
+                  ) : null}
+                  <Box
+                    sx={{
+                      maxWidth: '100%',
+                      width: 'fit-content',
+                      px: 1.2,
+                      py: 0.95,
+                      borderRadius: '16px',
+                      border: `1px solid ${mine ? '#2f80ff' : '#dbe3f0'}`,
+                      bgcolor: mine ? '#2f80ff' : '#F7F7F7',
+                      color: mine ? '#ffffff' : '#1c1f2a',
+                      ml: mine ? 'auto' : 0,
+                      position: 'relative',
+                    }}
+                  >
+                    {/* <Typography sx={{ fontSize: 11.5, fontWeight: 700, opacity: mine ? 0.9 : 0.7, mb: 0.35 }}>{senderName}</Typography> */}
+                    <Typography sx={{ fontSize: 14, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                      {deletedForEveryone ? 'Bạn đã xóa tin nhắn' : message.content || 'Không có nội dung'}
+                    </Typography>
 
-                  {Array.isArray(message.attachments) && message.attachments.length > 0 ? (
-                    <Stack spacing={0.45} sx={{ mt: 0.8 }}>
-                      {message.attachments.map((attachment) => (
-                        <Box
-                          key={attachment.id || attachment.storage_key}
-                          sx={{
-                            p: 0.55,
-                            borderRadius: '10px',
-                            bgcolor: mine ? 'rgba(255,255,255,0.16)' : '#f1f5f9',
-                            border: mine ? '1px solid rgba(255,255,255,0.25)' : '1px solid #d7e0ec',
-                          }}
-                        >
-                          <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.8}>
+                    {Array.isArray(message.attachments) && message.attachments.length > 0 ? (
+                      <Stack spacing={0.45} sx={{ mt: 0.8 }}>
+                        {message.attachments.map((attachment) => (
+                          <Stack key={attachment.id || attachment.storage_key} direction={'row'} spacing={2}>
                             <Box>
-                              <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{attachment.file_name || attachment.storage_key}</Typography>
-                              <Typography sx={{ fontSize: 11, opacity: 0.8 }}>{attachment.attachment_type} • {attachment.mime_type || 'unknown'}</Typography>
-                            </Box>
-                            {attachment.id ? (
-                              <Button
-                                size="small"
-                                onClick={() => onRemoveAttachment(attachment.id)}
-                                sx={{ textTransform: 'none', color: mine ? '#dbeafe' : '#ef4444', minWidth: 0, px: 0.6 }}
+                              <Avatar
+                                src={senderAvatarUrl || undefined}
+                                sx={{ width: 38, height: 38, bgcolor: '#d3defa', color: '#2d3e6f', fontSize: 14 }}
                               >
-                                Remove
-                              </Button>
-                            ) : null}
+                                {senderInitial}
+                              </Avatar>
+                            </Box>
+                            <Box
+                              sx={{
+                                p: 0.55,
+                                borderRadius: '10px',
+                                bgcolor: mine ? 'rgba(255,255,255,0.16)' : '#f1f5f9',
+                                border: mine ? '1px solid rgba(255,255,255,0.25)' : '1px solid #d7e0ec',
+                              }}
+                            >
+                              <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={0.8}>
+                                <Box>
+                                  <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{attachment.file_name || attachment.storage_key}</Typography>
+                                  <Typography sx={{ fontSize: 11, opacity: 0.8 }}>{attachment.attachment_type} • {attachment.mime_type || 'unknown'}</Typography>
+                                </Box>
+                                {attachment.id ? (
+                                  <Button
+                                    size="small"
+                                    onClick={() => onRemoveAttachment(attachment.id)}
+                                    sx={{ textTransform: 'none', color: mine ? '#dbeafe' : '#ef4444', minWidth: 0, px: 0.6 }}
+                                  >
+                                    Remove
+                                  </Button>
+                                ) : null}
+                              </Stack>
+                            </Box>
                           </Stack>
-                        </Box>
-                      ))}
-                    </Stack>
-                  ) : null}
+                        ))}
+                      </Stack>
+                    ) : null}
+                      <Button className="emoji-button"
+                        sx={{
+                          position: 'absolute',
+                          bottom: -6,
+                          right: -6,
+                          // opacity: 0, // Mặc định ẩn đi
+                          transition: 'opacity 0.2s ease-in-out', // Hiệu ứng hiện lên mượt mà
+                          minWidth: 'auto',
+                          padding: '4px',
+                          backgroundColor: 'white', // Thường icon popup cần nền trắng để nổi bật
+                          '&:hover': { backgroundColor: '#f5f5f5' }
+                        }}>
+                        <svg width="20px" height="20px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M9 16C9.85038 16.6303 10.8846 17 12 17C13.1154 17 14.1496 16.6303 15 16" stroke="#212121" stroke-width="1.5" stroke-linecap="round"></path> <path d="M16 10.5C16 11.3284 15.5523 12 15 12C14.4477 12 14 11.3284 14 10.5C14 9.67157 14.4477 9 15 9C15.5523 9 16 9.67157 16 10.5Z" fill="#212121"></path> <ellipse cx="9" cy="10.5" rx="1" ry="1.5" fill="#212121"></ellipse> <path d="M7 3.33782C8.47087 2.48697 10.1786 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 10.1786 2.48697 8.47087 3.33782 7" stroke="#212121" stroke-width="1.5" stroke-linecap="round"></path> </g></svg>
+                      </Button>
+                    
 
-                  {Array.isArray(message.reaction_summary) && message.reaction_summary.length > 0 ? (
-                    <Stack direction="row" spacing={0.45} sx={{ mt: 0.7, flexWrap: 'wrap' }}>
-                      {message.reaction_summary.map((reaction) => (
-                        <Chip
-                          key={`${message.id}-${reaction.reaction_code}`}
-                          label={`${reaction.reaction_code} ${reaction.total}`}
-                          size="small"
-                          sx={{
-                            bgcolor: mine ? 'rgba(255,255,255,0.22)' : '#e5eef9',
-                            color: mine ? '#fff' : '#1e293b',
-                          }}
-                        />
-                      ))}
-                    </Stack>
-                  ) : null}
+                    {Array.isArray(message.reaction_summary) && message.reaction_summary.length > 0 ? (
+                      <Stack direction="row" spacing={0.45} sx={{ mt: 0.7, flexWrap: 'wrap' }}>
+                        {message.reaction_summary.map((reaction) => (
+                          <Chip
+                            key={`${message.id}-${reaction.reaction_code}`}
+                            label={`${reaction.reaction_code} ${reaction.total}`}
+                            size="small"
+                            sx={{
+                              bgcolor: mine ? 'rgba(255,255,255,0.22)' : '#e5eef9',
+                              color: mine ? '#fff' : '#1e293b',
+                            }}
+                          />
+                        ))}
+                      </Stack>
+                    ) : null}
 
-                  {/* <Stack direction="row" spacing={0.35} sx={{ mt: 0.7, flexWrap: 'wrap' }}>
+                    {/* <Stack direction="row" spacing={0.35} sx={{ mt: 0.7, flexWrap: 'wrap' }}>
                   <Button size="small" onClick={() => onReactMessage(message, '👍')} sx={{ textTransform: 'none', color: mine ? '#dbeafe' : '#2563eb', minWidth: 0, px: 0.5 }}>
                     👍
                   </Button>
@@ -275,7 +358,8 @@ export default function ConversationPanel({
                   ) : null}
                 </Stack> */}
 
-                  <Typography sx={{ fontSize: 10.8, opacity: mine ? 0.8 : 0.6, mt: 0.25, textAlign: 'right' }}>{message.sent_at || ''}</Typography>
+                    <Typography sx={{ fontSize: 10.8, opacity: mine ? 0.8 : 0.6, mt: 0.25, textAlign: mine ? 'right' : 'left' }}>{message.sent_at || ''}</Typography>
+                  </Box>
                 </Box>
               </Box>
             )
