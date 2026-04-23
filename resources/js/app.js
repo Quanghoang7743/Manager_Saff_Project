@@ -41,6 +41,7 @@ const routeComponent = () => {
         || window.location.pathname === '/dashboard'
         || window.location.pathname === '/attendance'
         || window.location.pathname === '/employees'
+        || window.location.pathname === '/tasks/new'
         || window.location.pathname === '/tasks'
     ) {
         return React.createElement(Main);

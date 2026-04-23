@@ -4,7 +4,7 @@ import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded'
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded'
 import { useAuth } from '../../../js/context/AuthContext.jsx'
 
-const ADMIN_ROLES = new Set(['admin', 'super_admin', 'hr_admin'])
+const ADMIN_ROLES = new Set(['admin', 'super_admin', 'hr_admin', 'manager'])
 
 const BASE_TABS = [
   { key: 'dashboard', label: 'Dashboard', href: '/dashboard' },
@@ -76,7 +76,7 @@ export default function NavbarComponent({ role, activeTab, onChangeTab, onNaviga
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
 
           <Typography sx={{ fontWeight: 700, color: '#0f172a', letterSpacing: -0.3 }}>
-            HRM Chat
+            HRM Company
           </Typography>
 
           <Box sx={{ flex: 1, minWidth: 0 }}>

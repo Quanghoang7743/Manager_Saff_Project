@@ -5,12 +5,15 @@ import NavbarComponent from './components/navbar/navbar.component.jsx'
 import MessagePage from './message/page.jsx'
 import DashboardPage from './dashboard/index.jsx'
 import TaskPage from './task/index.jsx'
+import AttendancePage from './attendance/index.jsx'
+import EmployeesPage from './employees/index.jsx'
+import NewTask from './task/components/dialog-task/newTask.jsx'
 
 const resolveTabFromPath = (path) => {
   if (path === '/dashboard') return 'dashboard'
   if (path === '/attendance') return 'attendance'
   if (path === '/employees') return 'employees'
-  if (path === '/tasks') return 'task'
+  if (path === '/tasks' || path === '/tasks/new') return 'task'
 
   return 'message'
 }
@@ -55,11 +58,19 @@ export default function Main() {
     }
 
     if (activeTab === 'attendance') {
-      return <Box sx={{ p: 2, color: '#334155' }}>Điểm danh - đang triển khai giao diện.</Box>
+      return <AttendancePage/>
     }
 
     if (activeTab === 'task') {
+      if (window.location.pathname === '/tasks/new') {
+        return <NewTask />
+      }
+
       return <TaskPage />
+    }
+
+    if (activeTab === 'employees') {
+      return <EmployeesPage />
     }
 
     return <MessagePage />

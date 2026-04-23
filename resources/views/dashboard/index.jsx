@@ -1,282 +1,295 @@
 import React from 'react'
-import {
-    Avatar,
-    Box,
-    Button,
-    Card,
-    CardContent,
-    Divider,
-    IconButton,
-    InputBase,
-    Stack,
-    Typography,
-} from '@mui/material'
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded'
-import NotificationsRoundedIcon from '@mui/icons-material/NotificationsRounded'
-import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded'
-import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded'
-import VerifiedUserRoundedIcon from '@mui/icons-material/VerifiedUserRounded'
-import AddCircleRoundedIcon from '@mui/icons-material/AddCircleRounded'
-import DescriptionRoundedIcon from '@mui/icons-material/DescriptionRounded'
-import HomeWorkRoundedIcon from '@mui/icons-material/HomeWorkRounded'
-import CakeRoundedIcon from '@mui/icons-material/CakeRounded'
+import { attendanceApi } from '../../js/api/attendanceApi.js'
+import { employeesApi } from '../../js/api/employeesApi.js'
+import { tasksApi } from '../../js/api/tasksApi.js'
+import { toApiError } from '../../js/api/response.js'
 import { useAuth } from '../../js/context/AuthContext.jsx'
 
-const pipeline = [
-    { label: 'Applied', value: 142, height: '40%' },
-    { label: 'Screening', value: 86, height: '65%' },
-    { label: 'Interview', value: 42, height: '35%' },
-    { label: 'Offer', value: 12, height: '20%' },
-    { label: 'Hired', value: 8, height: '15%' },
-]
+const MANAGE_ROLES = new Set(['super_admin', 'hr_admin', 'manager'])
 
-const activityRows = [
-    {
-        title: 'New Employee Onboarding',
-        time: '2 HOURS AGO',
-        text: 'James Wilson was added to the Product Design department.',
-        icon: AddCircleRoundedIcon,
-        bg: '#dbeafe',
-        color: '#1d4ed8',
-    },
-    {
-        title: 'Payroll Processed',
-        time: '5 HOURS AGO',
-        text: 'Monthly payroll for August 2024 has been successfully disbursed.',
-        icon: DescriptionRoundedIcon,
-        bg: '#dcfce7',
-        color: '#166534',
-    },
-    {
-        title: 'Leave Request Approved',
-        time: 'YESTERDAY',
-        text: "Sarah Chen's annual leave request (5 days) has been approved by Finance.",
-        icon: HomeWorkRoundedIcon,
-        bg: '#fee2e2',
-        color: '#b91c1c',
-    },
-]
+const monthRange = () => {
+  const now = new Date()
+  const from = new Date(now.getFullYear(), now.getMonth(), 1)
+  const to = new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
-const birthdays = [
-    { name: 'Eleanor Pena', meta: 'August 28 - TODAY' },
-    { name: 'Guy Hawkins', meta: 'August 30 - 2 days left' },
-    { name: 'Robert Fox', meta: 'Sept 02 - 5 days left' },
-]
+  return {
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
+  }
+}
+
+const formatDate = (value) => {
+  if (!value) {
+    return 'No due date'
+  }
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return 'No due date'
+  }
+
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+const isDueSoon = (value) => {
+  if (!value) {
+    return false
+  }
+
+  const due = new Date(value)
+  if (Number.isNaN(due.getTime())) {
+    return false
+  }
+
+  const now = new Date()
+  const diffDays = (due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  return diffDays >= 0 && diffDays <= 7
+}
 
 export default function DashboardPage() {
+  const { user } = useAuth()
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState('')
+  const [stats, setStats] = React.useState({
+    totalEmployees: 0,
+    leaveEmployees: 0,
+    openTasks: 0,
+    doneTasks: 0,
+    myTasks: 0,
+    myInProgress: 0,
+    myDueSoon: 0,
+    myDone: 0,
+    attendanceHealth: '0%',
+    statusCounts: { todo: 0, in_progress: 0, done: 0, cancelled: 0 },
+  })
+  const [recentTasks, setRecentTasks] = React.useState([])
 
-    return (
-        <Box sx={{ p: { xs: 1.1, md: 2 } }}>
-            <Card sx={{ boxShadow: '0 18px 44px rgba(15,23,42,0.08)', background:'transparent' }}>
-                <Box
-                    sx={{
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 5,
-                        px: { xs: 1.2, md: 2.2 },
-                        py: 1,
-                        borderBottom: '1px solid #e2e8f0',
-                        bgcolor: 'rgba(248,250,252,0.9)',
-                        backdropFilter: 'blur(8px)',
-                    }}
-                >
-                    <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1.2}>
-                        <Stack direction="row" alignItems="center" spacing={1.2} sx={{ minWidth: 0 }}>
-                            <Typography sx={{ fontSize: 22, fontWeight: 800, color: '#111827', letterSpacing: -0.3 }}>Dashboard Overview</Typography>
-                            <Stack
-                                direction="row"
-                                alignItems="center"
-                                spacing={0.8}
-                                sx={{
-                                    display: { xs: 'none', md: 'flex' },
-                                    px: 1.2,
-                                    py: 0.55,
-                                    bgcolor: '#f8fafc',
-                                }}
-                            >
-                                <SearchRoundedIcon sx={{ fontSize: 18, color: '#64748b' }} />
-                                <InputBase placeholder="Search employees, files..." sx={{ fontSize: 13, minWidth: 220 }} />
-                            </Stack>
-                        </Stack>
+  const isManageRole = MANAGE_ROLES.has(user?.role)
 
+  React.useEffect(() => {
+    const loadDashboard = async () => {
+      try {
+        setLoading(true)
+        setError('')
 
-                    </Stack>
-                </Box>
+        const { from, to } = monthRange()
 
-                <CardContent sx={{ p: { xs: 1.2, md: 2.2 } }}>
-                    <Box sx={{ display: 'grid', gap: 1.1, gridTemplateColumns: { xs: '1fr', md: 'repeat(4, 1fr)' } }}>
-                        <Card sx={{ position: 'relative', overflow: 'hidden' }}>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 12, color: '#64748b' }}>Total Employees</Typography>
-                                <Typography sx={{ mt: 0.6, fontSize: 42, lineHeight: 1, fontWeight: 900, color: '#0f172a' }}>1,248</Typography>
-                                <Stack direction="row" spacing={0.8} alignItems="center" sx={{ mt: 1 }}>
-                                    <Box sx={{ px: 0.8, py: 0.2, bgcolor: '#e0f2fe', color: '#0369a1', fontSize: 11, fontWeight: 700 }}>+12%</Box>
-                                    <Typography sx={{ fontSize: 11, color: '#64748b' }}>vs last quarter</Typography>
-                                </Stack>
-                                <GroupsRoundedIcon sx={{ position: 'absolute', right: -10, bottom: -12, fontSize: 94, color: 'rgba(59,130,246,0.12)' }} />
-                            </CardContent>
-                        </Card>
+        if (isManageRole) {
+          const [employeesTotal, employeesLeave, todoData, progressData, doneData, cancelledData, taskFeed, reportData] = await Promise.all([
+            employeesApi.list({ per_page: 1 }),
+            employeesApi.list({ employment_status: 'leave', per_page: 1 }),
+            tasksApi.list({ status: 'todo', per_page: 1 }),
+            tasksApi.list({ status: 'in_progress', per_page: 1 }),
+            tasksApi.list({ status: 'done', per_page: 1 }),
+            tasksApi.list({ status: 'cancelled', per_page: 1 }),
+            tasksApi.list({ per_page: 8 }),
+            attendanceApi.report({ from, to }),
+          ])
 
-                        <Card>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 12, color: '#64748b' }}>On Leave Today</Typography>
-                                <Typography sx={{ mt: 0.6, fontSize: 36, lineHeight: 1, fontWeight: 800, color: '#0f172a' }}>42</Typography>
-                                <Stack direction="row" sx={{ mt: 1.1 }}>
-                                    <Avatar sx={{ width: 26, height: 26, fontSize: 11 }}>E</Avatar>
-                                    <Avatar sx={{ width: 26, height: 26, fontSize: 11, ml: -0.8 }}>G</Avatar>
-                                    <Avatar sx={{ width: 26, height: 26, fontSize: 11, ml: -0.8 }}>R</Avatar>
-                                    <Avatar sx={{ width: 26, height: 26, fontSize: 10, ml: -0.8, bgcolor: '#e2e8f0', color: '#334155' }}>+39</Avatar>
-                                </Stack>
-                            </CardContent>
-                        </Card>
+          const todoCount = Number(todoData?.meta?.total || 0)
+          const inProgressCount = Number(progressData?.meta?.total || 0)
+          const doneCount = Number(doneData?.meta?.total || 0)
+          const cancelledCount = Number(cancelledData?.meta?.total || 0)
 
-                        <Card>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 12, color: '#64748b' }}>New Hires</Typography>
-                                <Typography sx={{ mt: 0.6, fontSize: 36, lineHeight: 1, fontWeight: 800, color: '#0f172a' }}>18</Typography>
-                                <Stack direction="row" spacing={0.6} alignItems="center" sx={{ mt: 1.1 }}>
-                                    <VerifiedUserRoundedIcon sx={{ fontSize: 16, color: '#1d4ed8' }} />
-                                    <Typography sx={{ fontSize: 12, color: '#64748b' }}>Onboarding in progress</Typography>
-                                </Stack>
-                            </CardContent>
-                        </Card>
+          const reportRows = Array.isArray(reportData?.summary) ? reportData.summary : []
+          const totalWorkDays = reportRows.reduce((sum, row) => sum + Number(row.work_days || 0), 0)
+          const totalLateDays = reportRows.reduce((sum, row) => sum + Number(row.late_days || 0), 0)
+          const attendanceHealth = totalWorkDays > 0 ? `${Math.max(0, Math.round(((totalWorkDays - totalLateDays) / totalWorkDays) * 100))}%` : '0%'
 
-                        <Card>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 12, color: '#64748b' }}>Pending Requests</Typography>
-                                <Typography sx={{ mt: 0.6, fontSize: 36, lineHeight: 1, fontWeight: 800, color: '#0f172a' }}>07</Typography>
-                                <Button size="small" sx={{ mt: 1, textTransform: 'none', px: 0 }}>Review now</Button>
-                            </CardContent>
-                        </Card>
-                    </Box>
+          setStats({
+            totalEmployees: Number(employeesTotal?.meta?.total || 0),
+            leaveEmployees: Number(employeesLeave?.meta?.total || 0),
+            openTasks: todoCount + inProgressCount,
+            doneTasks: doneCount,
+            myTasks: 0,
+            myInProgress: 0,
+            myDueSoon: 0,
+            myDone: 0,
+            attendanceHealth,
+            statusCounts: {
+              todo: todoCount,
+              in_progress: inProgressCount,
+              done: doneCount,
+              cancelled: cancelledCount,
+            },
+          })
 
-                    <Box sx={{ mt: 1.2, display: 'grid', gap: 1.1, gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' } }}>
-                        <Card>
-                            <CardContent>
-                                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.2 }}>
-                                    <Box>
-                                        <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>Hiring Pipeline</Typography>
-                                        <Typography sx={{ fontSize: 12, color: '#64748b' }}>Candidate progression by stage</Typography>
-                                    </Box>
-                                    <Stack direction="row" spacing={0.6}>
-                                        <Button size="small" variant="outlined" sx={{ textTransform: 'none' }}>Weekly</Button>
-                                        <Button size="small" variant="contained" sx={{ textTransform: 'none' }}>Monthly</Button>
-                                    </Stack>
-                                </Stack>
+          setRecentTasks(Array.isArray(taskFeed?.items) ? taskFeed.items : [])
+          return
+        }
 
-                                <Stack direction="row" alignItems="flex-end" spacing={1.5} sx={{ height: 210 }}>
-                                    {pipeline.map((item, index) => (
-                                        <Stack key={item.label} spacing={0.6} alignItems="center" sx={{ flex: 1, minWidth: 0 }}>
-                                            <Box
-                                                sx={{
-                                                    width: '100%',
-                                                    height: item.height,
-                                                    borderRadius: '10px 10px 2px 2px',
-                                                    bgcolor: index === 4 ? '#a5b4fc' : `rgba(37,99,235,${0.18 + index * 0.16})`,
-                                                    position: 'relative',
-                                                }}
-                                            >
-                                                <Typography sx={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, color: '#475569' }}>
-                                                    {item.value}
-                                                </Typography>
-                                            </Box>
-                                            <Typography sx={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase' }}>{item.label}</Typography>
-                                        </Stack>
-                                    ))}
-                                </Stack>
-                            </CardContent>
-                        </Card>
+        const [myTasksData, myLogs] = await Promise.all([
+          tasksApi.list({ per_page: 100 }),
+          attendanceApi.myLogs({ from, to }),
+        ])
 
-                        <Card>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>Employee Diversity</Typography>
-                                <Typography sx={{ fontSize: 12, color: '#64748b' }}>Gender balance overview</Typography>
+        const taskItems = Array.isArray(myTasksData?.items) ? myTasksData.items : []
+        const inProgressCount = taskItems.filter((task) => task.status === 'in_progress').length
+        const doneCount = taskItems.filter((task) => task.status === 'done').length
+        const dueSoonCount = taskItems.filter((task) => isDueSoon(task.due_at)).length
 
-                                <Box
-                                    sx={{
-                                        mt: 1.4,
-                                        mx: 'auto',
-                                        width: 170,
-                                        height: 170,
-                                        borderRadius: '50%',
-                                        background: 'conic-gradient(#2563eb 0 45%, #a855f7 45% 80%, #22c55e 80% 100%)',
-                                        display: 'grid',
-                                        placeItems: 'center',
-                                    }}
-                                >
-                                    <Box sx={{ width: 112, height: 112, borderRadius: '50%', bgcolor: '#fff', display: 'grid', placeItems: 'center' }}>
-                                        <Typography sx={{ fontSize: 11, color: '#64748b', textTransform: 'uppercase' }}>Total</Typography>
-                                        <Typography sx={{ fontSize: 24, fontWeight: 900, color: '#0f172a' }}>100%</Typography>
-                                    </Box>
-                                </Box>
+        const logItems = Array.isArray(myLogs) ? myLogs : []
+        const onTimeDays = logItems.filter((log) => Number(log.late_minutes || 0) === 0 && log.check_in_at && log.check_out_at).length
+        const completeDays = logItems.filter((log) => log.check_in_at && log.check_out_at).length
+        const attendanceHealth = completeDays > 0 ? `${Math.round((onTimeDays / completeDays) * 100)}%` : '0%'
 
-                                <Stack spacing={0.6} sx={{ mt: 1.2 }}>
-                                    <Typography sx={{ fontSize: 12, color: '#334155' }}>Male (45%)</Typography>
-                                    <Typography sx={{ fontSize: 12, color: '#334155' }}>Female (35%)</Typography>
-                                    <Typography sx={{ fontSize: 12, color: '#334155' }}>Other (20%)</Typography>
-                                </Stack>
-                            </CardContent>
-                        </Card>
-                    </Box>
+        setStats({
+          totalEmployees: 0,
+          leaveEmployees: 0,
+          openTasks: 0,
+          doneTasks: 0,
+          myTasks: taskItems.length,
+          myInProgress: inProgressCount,
+          myDueSoon: dueSoonCount,
+          myDone: doneCount,
+          attendanceHealth,
+          statusCounts: {
+            todo: taskItems.filter((task) => task.status === 'todo').length,
+            in_progress: inProgressCount,
+            done: doneCount,
+            cancelled: taskItems.filter((task) => task.status === 'cancelled').length,
+          },
+        })
+        setRecentTasks(taskItems.slice(0, 8))
+      } catch (rawError) {
+        const apiError = toApiError(rawError, 'Could not fetch dashboard data')
+        setError(apiError.message)
+      } finally {
+        setLoading(false)
+      }
+    }
 
-                    <Box sx={{ mt: 1.2, display: 'grid', gap: 1.1, gridTemplateColumns: { xs: '1fr', lg: '2fr 1fr' } }}>
-                        <Card>
-                            <CardContent>
-                                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.1 }}>
-                                    <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#111827' }}>Recent Activities</Typography>
-                                    <Button size="small" sx={{ textTransform: 'none' }}>Export log</Button>
-                                </Stack>
+    loadDashboard()
+  }, [isManageRole])
 
-                                <Stack spacing={1.1}>
-                                    {activityRows.map((row, index) => {
-                                        const RowIcon = row.icon
+  const chartMax = Math.max(1, ...Object.values(stats.statusCounts))
 
-                                        return (
-                                            <Box key={row.title}>
-                                                <Stack direction="row" spacing={1} alignItems="flex-start">
-                                                    <Box sx={{ width: 36, height: 36, borderRadius: '50%', bgcolor: row.bg, color: row.color, display: 'grid', placeItems: 'center' }}>
-                                                        <RowIcon sx={{ fontSize: 18 }} />
-                                                    </Box>
-                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                        <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
-                                                            <Typography sx={{ fontSize: 14, fontWeight: 700, color: '#111827' }}>{row.title}</Typography>
-                                                            <Typography sx={{ fontSize: 10, color: '#94a3b8' }}>{row.time}</Typography>
-                                                        </Stack>
-                                                        <Typography sx={{ mt: 0.35, fontSize: 12, color: '#64748b' }}>{row.text}</Typography>
-                                                    </Box>
-                                                </Stack>
-                                                {index < activityRows.length - 1 ? <Divider sx={{ mt: 1 }} /> : null}
-                                            </Box>
-                                        )
-                                    })}
-                                </Stack>
-                            </CardContent>
-                        </Card>
+  const chartData = [
+    { key: 'todo', label: 'To Do', value: stats.statusCounts.todo },
+    { key: 'in_progress', label: 'In Progress', value: stats.statusCounts.in_progress },
+    { key: 'done', label: 'Done', value: stats.statusCounts.done },
+    { key: 'cancelled', label: 'Cancelled', value: stats.statusCounts.cancelled },
+  ]
 
-                        <Card>
-                            <CardContent>
-                                <Typography sx={{ fontSize: 17, fontWeight: 700, color: '#111827', mb: 1 }}>Upcoming Birthdays</Typography>
-                                <Stack spacing={0.9}>
-                                    {birthdays.map((item) => (
-                                        <Stack key={item.name} direction="row" alignItems="center" spacing={1} sx={{ p: 0.8, bgcolor: '#f8fafc' }}>
-                                            <Avatar sx={{ width: 36, height: 36 }}>{item.name.slice(0, 1)}</Avatar>
-                                            <Box sx={{ minWidth: 0, flex: 1 }}>
-                                                <Typography noWrap sx={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{item.name}</Typography>
-                                                <Typography sx={{ fontSize: 11, color: '#64748b' }}>{item.meta}</Typography>
-                                            </Box>
-                                            <CakeRoundedIcon sx={{ fontSize: 18, color: '#f59e0b' }} />
-                                        </Stack>
-                                    ))}
-                                </Stack>
+  const deadlineTasks = recentTasks
+    .filter((task) => task.due_at)
+    .sort((a, b) => new Date(a.due_at).getTime() - new Date(b.due_at).getTime())
+    .slice(0, 5)
 
-                                <Button fullWidth variant="contained" sx={{ mt: 1.2, textTransform: 'none' }}>
-                                    View calendar
-                                </Button>
-                            </CardContent>
-                        </Card>
-                    </Box>
-                </CardContent>
-            </Card>
-        </Box>
-    )
+  return (
+    <main className="max-w-7xl mx-auto min-h-screen">
+      <div className="p-8 space-y-8">
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          <div className="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-primary">
+            <p className="text-sm font-medium text-on-surface-variant/70 mb-1 uppercase tracking-widest">
+              {isManageRole ? 'Total Employees' : 'My Tasks'}
+            </p>
+            <h3 className="text-4xl font-black text-on-surface tracking-tighter">{loading ? '...' : isManageRole ? stats.totalEmployees : stats.myTasks}</h3>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-secondary-container">
+            <p className="text-sm font-medium text-on-surface-variant/70 mb-1 uppercase tracking-widest">
+              {isManageRole ? 'On Leave' : 'In Progress'}
+            </p>
+            <h3 className="text-4xl font-bold text-on-surface tracking-tight">{loading ? '...' : isManageRole ? stats.leaveEmployees : stats.myInProgress}</h3>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-tertiary-fixed">
+            <p className="text-sm font-medium text-on-surface-variant/70 mb-1 uppercase tracking-widest">
+              {isManageRole ? 'Open Tasks' : 'Due Soon'}
+            </p>
+            <h3 className="text-4xl font-bold text-on-surface tracking-tight">{loading ? '...' : isManageRole ? stats.openTasks : stats.myDueSoon}</h3>
+          </div>
+
+          <div className="bg-surface-container-lowest p-6 rounded-xl border-l-4 border-error-container">
+            <p className="text-sm font-medium text-on-surface-variant/70 mb-1 uppercase tracking-widest">
+              {isManageRole ? 'Completed Tasks' : 'My Done Tasks'}
+            </p>
+            <h3 className="text-4xl font-bold text-on-surface tracking-tight">{loading ? '...' : isManageRole ? stats.doneTasks : stats.myDone}</h3>
+          </div>
+        </section>
+
+        {error ? (
+          <section className="bg-error-container text-on-error-container rounded-xl px-5 py-4 text-sm font-semibold">
+            {error}
+          </section>
+        ) : null}
+
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-surface-container-lowest p-8 rounded-xl">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h4 className="text-lg font-bold text-on-surface">Task Pipeline</h4>
+                <p className="text-xs text-on-surface-variant/60">Real-time count by task status</p>
+              </div>
+            </div>
+
+            <div className="h-64 flex items-end justify-between gap-4">
+              {chartData.map((item) => {
+                const height = `${Math.max(10, Math.round((item.value / chartMax) * 100))}%`
+                return (
+                  <div key={item.key} className="flex-1 flex flex-col items-center gap-3">
+                    <div className="w-full bg-primary/20 rounded-t-lg relative" style={{ height }}>
+                      <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[10px] font-bold">{item.value}</span>
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-tighter text-on-surface-variant/50">{item.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          <div className="bg-surface-container-lowest p-8 rounded-xl flex flex-col justify-between">
+            <div>
+              <h4 className="text-lg font-bold text-on-surface">Attendance Health</h4>
+              <p className="text-xs text-on-surface-variant/60">On-time attendance score this month</p>
+            </div>
+            <div className="py-8 text-center">
+              <p className="text-5xl font-black text-primary">{loading ? '...' : stats.attendanceHealth}</p>
+            </div>
+            <p className="text-xs text-on-surface-variant/70">Calculated from monthly attendance logs and late-day ratio.</p>
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-surface-container-lowest p-8 rounded-xl">
+            <h4 className="text-lg font-bold text-on-surface mb-6">Recent Tasks</h4>
+            <div className="space-y-4">
+              {loading ? <p className="text-sm text-on-surface-variant">Loading tasks...</p> : null}
+              {!loading && recentTasks.length === 0 ? <p className="text-sm text-on-surface-variant">No recent tasks.</p> : null}
+              {!loading
+                ? recentTasks.map((task) => (
+                    <div key={task.id} className="flex items-start justify-between gap-4 border-b border-outline-variant/10 pb-4 last:border-b-0">
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">{task.title}</p>
+                        <p className="text-xs text-on-surface-variant mt-1">
+                          {task.status} • {task.priority} priority
+                        </p>
+                      </div>
+                      <span className="text-xs font-bold text-on-surface-variant/60">{formatDate(task.due_at)}</span>
+                    </div>
+                  ))
+                : null}
+            </div>
+          </div>
+
+          <div className="bg-surface-container-lowest p-8 rounded-xl">
+            <h4 className="text-lg font-bold text-on-surface mb-6">Upcoming Deadlines</h4>
+            <div className="space-y-3">
+              {loading ? <p className="text-sm text-on-surface-variant">Loading deadlines...</p> : null}
+              {!loading && deadlineTasks.length === 0 ? <p className="text-sm text-on-surface-variant">No upcoming deadlines.</p> : null}
+              {!loading
+                ? deadlineTasks.map((task) => (
+                    <div key={task.id} className="bg-surface-container-low p-3 rounded-lg">
+                      <p className="text-sm font-bold text-on-surface">{task.title}</p>
+                      <p className="text-[11px] text-on-surface-variant mt-1">Due {formatDate(task.due_at)}</p>
+                    </div>
+                  ))
+                : null}
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  )
 }

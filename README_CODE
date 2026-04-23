@@ -1,0 +1,101 @@
+# README_CODE
+
+Tai lieu nay mo ta luong hoat dong sau khi da ghep API that cho `dashboard`, `attendance`, `task`.
+
+## 1) Tong quan luong frontend -> backend
+
+1. Dang nhap thanh cong qua `/api/login`, token duoc luu trong localStorage (`messapp_auth_token`).
+2. `httpClient` tu dong gan header `Authorization: Bearer <token>` cho tat ca request API.
+3. `AuthContext` goi `/api/me` de lay profile (bao gom `role`) va cap nhat UI theo role.
+4. Cac page moi su dung API module rieng trong `resources/js/api/*`:
+   - `tasksApi.js`
+   - `attendanceApi.js`
+   - `employeesApi.js`
+   - `departmentsApi.js`
+5. Error API duoc chuan hoa qua `toApiError` de hien thi thong bao gon.
+
+## 2) Luong trang Task (`/tasks`)
+
+File chinh: `resources/views/task/index.jsx`
+
+- Lay data that tu `GET /api/tasks` (co search `q`, phan trang `per_page`).
+- Board chia theo status that: `todo`, `in_progress`, `done`, `cancelled`.
+- Tao task: `POST /api/tasks`.
+- Chuyen trang thai task: `PUT /api/tasks/{id}`.
+- Xoa task: `DELETE /api/tasks/{id}`.
+- Role rule backend duoc ton trong:
+  - `super_admin/hr_admin/manager`: thay duoc nhieu task theo quyen.
+  - `employee`: chi thay task lien quan den minh.
+
+## 3) Luong trang Attendance (`/attendance`)
+
+File chinh: `resources/views/attendance/index.jsx`
+
+- Neu role la `super_admin/hr_admin/manager`:
+  - Lay log team: `GET /api/attendance/logs/team`.
+  - Lay report: `GET /api/attendance/reports`.
+  - Lay department: `GET /api/departments`.
+  - Lay employee map: `GET /api/employees` (de ho tro loc theo department).
+- Neu role la `employee`:
+  - Lay log cua toi: `GET /api/attendance/logs/me`.
+- Nut `Manual Clock-in/out`:
+  1. Goi `GET /api/attendance/assignments/me` theo ngay dang chon.
+  2. Neu co ca dang mo -> `POST /api/attendance/check-out`.
+  3. Neu chua check-in -> `POST /api/attendance/check-in`.
+- Bang du lieu hien thi gio vao/ra, tong gio, trang thai (`on_time`, `late`, `checked_in`, `absent`) tu data that.
+
+## 4) Luong trang Dashboard (`/dashboard`)
+
+File chinh: `resources/views/dashboard/index.jsx`
+
+- Neu role la `super_admin/hr_admin/manager`:
+  - KPI nhan su: `GET /api/employees` (+ filter `employment_status=leave`).
+  - KPI task theo trang thai: `GET /api/tasks?status=...`.
+  - Du lieu task gan day: `GET /api/tasks`.
+  - Attendance health theo thang: `GET /api/attendance/reports`.
+- Neu role la `employee`:
+  - KPI ca nhan dua tren `GET /api/tasks` (backend tu gioi han theo user).
+  - Attendance health ca nhan dua tren `GET /api/attendance/logs/me`.
+
+## 5) Cac file da duoc cap nhat
+
+- API modules:
+  - `resources/js/api/tasksApi.js`
+  - `resources/js/api/attendanceApi.js`
+  - `resources/js/api/employeesApi.js`
+  - `resources/js/api/departmentsApi.js`
+- Page UI dung data that:
+  - `resources/views/task/index.jsx`
+  - `resources/views/attendance/index.jsx`
+  - `resources/views/dashboard/index.jsx`
+
+## 6) Lam sao de co role `super_admin`
+
+Mac dinh dang ky moi se la `employee` (xem `app/Services/AuthService.php`).
+
+### Cach nhanh nhat (khuyen nghi dev local): dung Tinker
+
+```bash
+php artisan tinker
+```
+
+```php
+$u = App\Models\User::where('phone', '')->first();
+$u->role = 'super_admin';
+$u->save();
+```
+
+Sau do dang xuat va dang nhap lai de refresh profile/role tren frontend.
+
+### Cach SQL truc tiep
+
+```sql
+UPDATE users
+SET role = 'super_admin'
+WHERE email = 'your_email@example.com';
+```
+
+## 7) Luu y khi chay local
+
+- Neu `:8000` tra ve `uvicorn`/FastAPI thi Laravel co the dang chay o cong khac (vi du `:8001`).
+- Can truy cap dung cong Laravel de xem cac trang dashboard/attendance/task.

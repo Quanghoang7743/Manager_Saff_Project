@@ -1,4 +1,98 @@
-# Huong dan setup va chay du an
+### HRM COMPANY
+
+Nền tảng quản lý nhân sự được xây dựng trên Laravel + React.
+
+---
+# Tổng quan 
+
+## Yêu cầu môi trường 
+
+- PHP >= 8.2 (khuyến nghị dùng version tương thích với dự án hiện tại)
+- Composer
+- Node.js >= 18 + npm
+- MySQL/MariaDB
+- Extension PHP cơ bản: `mbstring`, `openssl`, `pdo`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`, `fileinfo`
+
+---
+
+## Cấu trúc thư mục 
+
+messapp/
+├── app/
+│   ├── Events/                # Event backend (broadcast/realtime)
+│   ├── Http/
+│   │   ├── Controllers/Api/   # API controllers (Auth, Task, Attendance, Employee, Chat...)
+│   │   ├── Middleware/         # Middleware xử lý request
+│   │   ├── Requests/           # Form Request validate input
+│   │   └── Resources/          # API Resource transform dữ liệu trả về
+│   ├── Models/                # Eloquent models (User, Task, Attendance...)
+│   ├── Providers/             # Service provider Laravel
+│   ├── Services/              # Business/service layer
+│   ├── Support/               # Helper/support (ví dụ RoleGuard)
+│   └── Traits/                # Trait dùng chung (ví dụ ApiResponseTrait)
+│
+├── bootstrap/                 # Bootstrap framework Laravel
+├── config/                    # Toàn bộ cấu hình app (db, auth, sanctum, broadcasting...)
+├── database/
+│   ├── migrations/            # Migration schema DB
+│   ├── seeders/               # Seed dữ liệu mẫu
+│   ├── factories/             # Factory tạo dữ liệu test/dev
+│   └── database.sqlite        # SQLite local (nếu dùng)
+│
+├── public/
+│   ├── build/                 # Asset frontend đã build bởi Vite
+│   ├── icons/                 # Static assets/icons
+│   └── index.php              # Entry public của Laravel
+│
+├── resources/
+│   ├── css/                   # CSS nguồn
+│   ├── js/
+│   │   ├── api/               # API client frontend (tasksApi, attendanceApi, employeesApi...)
+│   │   ├── context/           # React context (AuthContext...)
+│   │   ├── realtime/          # Echo/realtime client logic
+│   │   ├── utils/             # Utility JS
+│   │   └── app.js             # Entry React/Vite
+│   └── views/
+│       ├── Main.jsx           # App shell React theo route/path
+│       ├── main.blade.php     # Blade host mount React
+│       ├── dashboard/         # UI dashboard HRM
+│       ├── attendance/        # UI attendance
+│       ├── employees/         # UI employee directory
+│       ├── task/              # UI task board + new task
+│       ├── message/           # UI chat
+│       ├── components/        # Component dùng chung
+│       └── account/           # Login/signup/setting
+│
+├── routes/
+│   ├── api.php                # Định nghĩa REST API
+│   ├── web.php                # Route web (/, /dashboard, /tasks, /tasks/new...)
+│   ├── channels.php           # Channel auth cho broadcast
+│   └── console.php            # Route command artisan
+│
+├── storage/                   # Log, cache, file runtime
+├── tests/
+│   └── Feature/               # Test tích hợp/feature
+│
+├── vendor/                    # Dependency PHP (Composer)
+├── node_modules/              # Dependency JS (npm)
+│
+├── artisan                    # CLI Laravel
+├── composer.json              # Khai báo package PHP
+├── package.json               # Khai báo package frontend
+├── vite.config.js             # Cấu hình Vite build
+├── .env / .env.example        # Biến môi trường
+├── README.md                  # README chính
+
+# Tech stack
+
+- **Backend**: Laravel (PHP), Sanctum Auth, MySQL
+- **Frontend**: React, Vite, MUI + Tailwind utility classes
+- **Realtime**: Laravel Echo + Pusher protocol (driver `reverb`/`pusher`)
+- **Build tools**: Composer, NPM
+
+---
+
+# Hướng dẫn setup dự án
 
 ## 1. Cài đặt dependency
 
@@ -7,39 +101,42 @@ composer install
 npm install
 ```
 
-## 2. Setup local
-
-Dung `.env.local` lam cau hinh local.
+# Nếu lỗi phiên bản trong quá trình cài
 
 ```bash
-cp .env.local .env
-php artisan config:clear
+composer install --ignore-platform-reqs
 ```
 
-Các biến quan trọng local:
+Lệnh này có tác dụng skip phiên bản hiện tại để có thể chạy được dự án
 
-- `BROADCAST_CONNECTION=reverb`
-- `VITE_BROADCAST_DRIVER=reverb`
-- `REVERB_HOST=127.0.0.1`
-- `REVERB_PORT=8080`
-- `REVERB_SCHEME=http`
-- `VITE_REVERB_HOST=127.0.0.1`
-- `VITE_REVERB_PORT=8080`
-- `VITE_REVERB_SCHEME=http`
+## 2. Cấu hình môi trường
+
+```bash
+cp .env.example .env
+php artisan key:generate
+```
+
+Cập nhật trong .env:
+
+APP_URL
+DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+Cấu hình broadcast (nếu dùng realtime local/reverb/pusher)
 
 ### Database
 
-Tạo và sửa đúng thông tin cho database trong `.env.local`:
-
 ```env
 DB_CONNECTION="mysql"
-DB_HOST="caboose.proxy.rlwy.net"
-DB_PORT="58900"
-DB_DATABASE="railway"
+DB_HOST="127.0.0.1"
+DB_PORT="3306"
+DB_DATABASE="hrm"
 DB_USERNAME="root"
-DB_PASSWORD="ReyVUHPktoEvRLQBHWjCFhTPYAMRDNvH"
+DB_PASSWORD=""
 ```
+### Migrate
 
+```bash
+php artisan migrate
+```
 
 ## 3. Chay local
 
@@ -87,3 +184,31 @@ cp .env.local .env
 php artisan key:generate
 php artisan config:clear
 ```
+
+# Tài khoản & phân quyền (RBAC)
+
+## Các role hệ thống
+
+super_admin
+hr_admin
+manager
+employee
+
+## Quyền chính (tóm tắt)
+
+super_admin / hr_admin: quản lý tổ chức, nhân sự, attendance, tasks.
+manager: quản lý nhân viên team, tasks, xem logs/report theo phạm vi team.
+employee: xem/chỉnh trong phạm vi cá nhân (task của mình, attendance của mình).
+
+## Set role admin (test)
+
+```bash
+php artisan tinker
+```
+
+```bash
+$u = App\Models\User::where('phone_number', '01234567890')->first();
+$u->role = 'super_admin';
+$u->save();
+```
+
