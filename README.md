@@ -1,11 +1,11 @@
-### HRM COMPANY
+# HRM COMPANY
 
 Nền tảng quản lý nhân sự được xây dựng trên Laravel + React.
 
 ---
-# Tổng quan 
+## Tổng quan 
 
-## Yêu cầu môi trường 
+### Yêu cầu môi trường 
 
 - PHP >= 8.2 (khuyến nghị dùng version tương thích với dự án hiện tại)
 - Composer
@@ -15,7 +15,7 @@ Nền tảng quản lý nhân sự được xây dựng trên Laravel + React.
 
 ---
 
-## Cấu trúc thư mục 
+### Cấu trúc thư mục 
 
 ```text
 messapp/
@@ -88,7 +88,7 @@ messapp/
 └── README_CODE                          # Tài liệu luồng code nội bộ
 ```
 
-# Tech stack
+### Tech stack
 
 - **Backend**: Laravel (PHP), Sanctum Auth, MySQL
 - **Frontend**: React, Vite, MUI + Tailwind utility classes
@@ -97,16 +97,16 @@ messapp/
 
 ---
 
-# Hướng dẫn setup dự án
+## Hướng dẫn setup dự án
 
-## 1. Cài đặt dependency
+### 1. Cài đặt dependency
 
 ```bash
 composer install
 npm install
 ```
 
-# Nếu lỗi phiên bản trong quá trình cài
+### Nếu lỗi phiên bản trong quá trình cài
 
 ```bash
 composer install --ignore-platform-reqs
@@ -114,7 +114,7 @@ composer install --ignore-platform-reqs
 
 Lệnh này có tác dụng skip phiên bản hiện tại để có thể chạy được dự án
 
-## 2. Cấu hình môi trường
+### 2. Cấu hình môi trường
 
 ```bash
 cp .env.example .env
@@ -143,7 +143,7 @@ DB_PASSWORD=""
 php artisan migrate
 ```
 
-## 3. Chay local
+### 3. Chay local
 
 Chạy lệnh này 
 
@@ -163,7 +163,7 @@ php artisan reverb:start --host=0.0.0.0 --port=8080
 
 
 
-## 5. Cách verify realtime
+### 5. Cách verify realtime
 
 Sau khi chạy xong, kiểm tra:
 
@@ -172,7 +172,7 @@ Sau khi chạy xong, kiểm tra:
    - tab socket đã có chưa
    - `POST /api/broadcasting/auth`
 
-## 6. Lỗi thường gặp
+### 6. Lỗi thường gặp
 
 ### Thiếu APP_KEY
 
