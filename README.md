@@ -190,22 +190,23 @@ php artisan key:generate
 php artisan config:clear
 ```
 
-# Tài khoản & phân quyền (RBAC)
+## Tài khoản & phân quyền (RBAC)
 
-## Các role hệ thống
-
+### Các role hệ thống
+```text
 super_admin
 hr_admin
 manager
 employee
+```
 
-## Quyền chính (tóm tắt)
+### Quyền chính (tóm tắt)
 
 super_admin / hr_admin: quản lý tổ chức, nhân sự, attendance, tasks.
 manager: quản lý nhân viên team, tasks, xem logs/report theo phạm vi team.
 employee: xem/chỉnh trong phạm vi cá nhân (task của mình, attendance của mình).
 
-## Set role admin (test)
+### Set role admin (test)
 
 ```bash
 php artisan tinker
