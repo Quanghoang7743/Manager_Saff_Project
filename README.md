@@ -17,71 +17,76 @@ Nền tảng quản lý nhân sự được xây dựng trên Laravel + React.
 
 ## Cấu trúc thư mục 
 
+```text
 messapp/
 ├── app/
-│   ├── Events/                # Event backend (broadcast/realtime)
+│   ├── Events/                          # Event backend (broadcast/realtime)
 │   ├── Http/
-│   │   ├── Controllers/Api/   # API controllers (Auth, Task, Attendance, Employee, Chat...)
-│   │   ├── Middleware/         # Middleware xử lý request
-│   │   ├── Requests/           # Form Request validate input
-│   │   └── Resources/          # API Resource transform dữ liệu trả về
-│   ├── Models/                # Eloquent models (User, Task, Attendance...)
-│   ├── Providers/             # Service provider Laravel
-│   ├── Services/              # Business/service layer
-│   ├── Support/               # Helper/support (ví dụ RoleGuard)
-│   └── Traits/                # Trait dùng chung (ví dụ ApiResponseTrait)
+│   │   ├── Controllers/Api/             # API controllers hiện có (Auth, Friend, Message, User...)
+│   │   ├── Middleware/                  # Middleware xử lý request
+│   │   ├── Requests/                    # Form Request validate input
+│   │   └── Resources/                   # API Resource transform dữ liệu trả về
+│   ├── Models/                          # Eloquent models
+│   ├── Providers/                       # Service providers Laravel
+│   ├── Services/                        # Service/business logic
+│   ├── Support/                         # Helper/support
+│   └── Traits/                          # Traits dùng chung
 │
-├── bootstrap/                 # Bootstrap framework Laravel
-├── config/                    # Toàn bộ cấu hình app (db, auth, sanctum, broadcasting...)
+├── bootstrap/                           # Bootstrap framework Laravel
+├── config/                              # Cấu hình app (db, auth, sanctum, broadcasting...)
 ├── database/
-│   ├── migrations/            # Migration schema DB
-│   ├── seeders/               # Seed dữ liệu mẫu
-│   ├── factories/             # Factory tạo dữ liệu test/dev
-│   └── database.sqlite        # SQLite local (nếu dùng)
+│   ├── migrations/                      # Migration schema DB
+│   ├── seeders/                         # Seed dữ liệu
+│   ├── factories/                       # Factory dữ liệu test/dev
+│   └── database.sqlite                  # SQLite local (nếu dùng)
 │
 ├── public/
-│   ├── build/                 # Asset frontend đã build bởi Vite
-│   ├── icons/                 # Static assets/icons
-│   └── index.php              # Entry public của Laravel
+│   ├── build/                           # Asset frontend sau khi build Vite
+│   ├── icons/                           # Static assets/icons
+│   └── index.php                        # Entry public của Laravel
 │
 ├── resources/
-│   ├── css/                   # CSS nguồn
+│   ├── css/                             # CSS nguồn
 │   ├── js/
-│   │   ├── api/               # API client frontend (tasksApi, attendanceApi, employeesApi...)
-│   │   ├── context/           # React context (AuthContext...)
-│   │   ├── realtime/          # Echo/realtime client logic
-│   │   ├── utils/             # Utility JS
-│   │   └── app.js             # Entry React/Vite
+│   │   ├── api/                         # API clients frontend
+│   │   ├── context/                     # React context (AuthContext...)
+│   │   ├── realtime/                    # Echo/realtime client logic
+│   │   ├── utils/                       # Utility JS
+│   │   └── app.js                       # Entry React/Vite
 │   └── views/
-│       ├── Main.jsx           # App shell React theo route/path
-│       ├── main.blade.php     # Blade host mount React
-│       ├── dashboard/         # UI dashboard HRM
-│       ├── attendance/        # UI attendance
-│       ├── employees/         # UI employee directory
-│       ├── task/              # UI task board + new task
-│       ├── message/           # UI chat
-│       ├── components/        # Component dùng chung
-│       └── account/           # Login/signup/setting
+│       ├── Main.jsx                     # App shell React theo path
+│       ├── main.blade.php               # Blade host mount React
+│       ├── dashboard/                   # UI dashboard
+│       ├── attendance/                  # UI attendance
+│       ├── employees/                   # UI employee directory
+│       ├── task/
+│       │   ├── index.jsx                # Task board
+│       │   └── components/dialog-task/
+│       │       └── newTask.jsx          # Form tạo task mới
+│       ├── message/                     # UI chat
+│       ├── components/                  # Component dùng chung
+│       └── account/                     # Login/signup/setting
 │
 ├── routes/
-│   ├── api.php                # Định nghĩa REST API
-│   ├── web.php                # Route web (/, /dashboard, /tasks, /tasks/new...)
-│   ├── channels.php           # Channel auth cho broadcast
-│   └── console.php            # Route command artisan
+│   ├── api.php                          # Định nghĩa REST API
+│   ├── web.php                          # Route web (/, /dashboard, /tasks, /tasks/new...)
+│   ├── channels.php                     # Channel auth cho broadcast
+│   └── console.php                      # Route command artisan
 │
-├── storage/                   # Log, cache, file runtime
+├── storage/                             # Log, cache, runtime files
 ├── tests/
-│   └── Feature/               # Test tích hợp/feature
+│   └── Feature/                         # Test tích hợp/feature
 │
-├── vendor/                    # Dependency PHP (Composer)
-├── node_modules/              # Dependency JS (npm)
-│
-├── artisan                    # CLI Laravel
-├── composer.json              # Khai báo package PHP
-├── package.json               # Khai báo package frontend
-├── vite.config.js             # Cấu hình Vite build
-├── .env / .env.example        # Biến môi trường
-├── README.md                  # README chính
+├── vendor/                              # Dependency PHP (Composer)
+├── node_modules/                        # Dependency JS (npm)
+├── artisan                              # CLI Laravel
+├── composer.json                        # Khai báo package PHP
+├── package.json                         # Khai báo package frontend
+├── vite.config.js                       # Cấu hình Vite build
+├── .env / .env.example                  # Biến môi trường
+├── README.md                            # README chính
+└── README_CODE                          # Tài liệu luồng code nội bộ
+```
 
 # Tech stack
 
@@ -211,4 +216,3 @@ $u = App\Models\User::where('phone_number', '01234567890')->first();
 $u->role = 'super_admin';
 $u->save();
 ```
-
