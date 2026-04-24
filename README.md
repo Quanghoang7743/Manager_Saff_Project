@@ -5,6 +5,13 @@ Nền tảng quản lý nhân sự được xây dựng trên Laravel + React.
 ---
 ## Tổng quan 
 
+### Thành viên 
+
+- Hoàng Minh Quang (Trưởng nhóm)
+- Nguyễn Quý Khôi
+- Nguyễn Thị Huyền
+- Nghiêm Xuân Mạnh
+
 ### Yêu cầu môi trường 
 
 - PHP >= 8.2 (khuyến nghị dùng version tương thích với dự án hiện tại)
@@ -189,6 +196,7 @@ cp .env.local .env
 php artisan key:generate
 php artisan config:clear
 ```
+---
 
 ## Tài khoản & phân quyền (RBAC)
 
